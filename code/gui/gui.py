@@ -1,0 +1,89 @@
+import tkinter as tk
+from PIL import Image, ImageTk
+import time
+from threading import Thread
+import depthai as dai
+
+import sys
+sys.path.append("../")
+from app.app import Camera, Model
+
+
+# Global variable
+isActive = True
+
+class App(tk.Frame):
+    def __init__(self, master=None):
+        super().__init__(master)
+        self.master = master
+        self.pack()
+        self.create_widgets()
+        self.isActive = True
+
+    def create_widgets(self):
+        
+        self.labelHeure = tk.Label(self)
+        self.labelHeure.pack(side="bottom")
+
+        self.labelNbClass = tk.Label(self)
+        self.labelNbClass.pack(side="bottom")
+
+        self.buttonClose = tk.Button(self)
+        self.buttonClose = tk.Button(self, text= "Close the Window", command=self.close).pack(side="bottom")
+
+
+        self.img = Image.open("../app/assets/loading.jpg")
+        self.photo = ImageTk.PhotoImage(self.img)
+        self.image_label = tk.Label(self, image=self.photo)
+        self.image_label.pack(side="top")
+
+    def update_image(self, img, classes):
+
+        current_time = time.strftime("%H:%M:%S")
+        self.labelHeure.configure(text=current_time)
+        self.labelNbClass.configure(text="Nombre de classes détectés: "+str(classes))
+
+
+        self.photo = ImageTk.PhotoImage(Image.fromarray(img[:,:,::-1]))
+        self.image_label.configure(image=self.photo)
+
+    def close(self):
+        self.isActive = False
+        self.destroy()
+        self.quit()
+
+
+
+
+root = tk.Tk()
+
+app_main = App(master=root)
+
+
+def thread_cam():
+    model = Model()
+
+    camera = Camera()
+
+    # Connect to device and start pipeline
+    with dai.Device(camera.pipeline) as deviceCamera:
+
+        # Output queue will be used to get the rgb frames from the output defined above
+        qRgb = deviceCamera.getOutputQueue(name="rgb", maxSize=4, blocking=False)
+
+        while app_main.isActive:
+            inRgb = qRgb.get() 
+
+            orig_image = inRgb.getCvFrame()
+
+            results = model.prediction(orig_image)
+
+            app_main.update_image(results.render()[0], len(results.pred[0]))
+
+
+    sys.exit()
+
+t = Thread(name='camera', target=thread_cam)
+t.start()
+
+app_main.mainloop()
