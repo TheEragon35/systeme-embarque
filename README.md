@@ -1,8 +1,8 @@
 # systeme-embarque
 Repository pour l'ia embarquée
 
-Louis
-enocmoi
-roi enoc
-eragon
-naton
+
+
+## README
+
+Une petite vidéo de démonstration est disponible pour visualiser l'interface graphique.
